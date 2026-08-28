@@ -1,0 +1,21 @@
+{
+  "name": "passermarken",
+  "version": "1.0.0",
+  "private": true,
+  "description": "PASSERMARKEN — Ein-Daumen-Drucksaal-Runner. 90 Sekunden pro Bogen.",
+  "type": "module",
+  "scripts": {
+    "dev": "npx --yes serve -l 5173 .",
+    "typecheck": "tsc --noEmit",
+    "build": "tsc --outDir dist --removeComments && node scripts/inline.mjs",
+    "preview": "npx --yes serve ."
+  },
+  "devDependencies": {
+    "typescript": "^5.6.0"
+  },
+  "browserslist": [
+    "last 2 chrome versions",
+    "last 2 safari versions",
+    "last 2 firefox versions"
+  ]
+}

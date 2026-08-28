@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <title>PASSERMARKEN</title>
+  <!-- Bogen -->
+  <rect width="512" height="512" fill="#E9E2D0"/>
+  <!-- Halftone-Sieb -->
+  <defs>
+    <pattern id="ht" width="18" height="18" patternUnits="userSpaceOnUse">
+      <circle cx="4" cy="4" r="1.6" fill="#3C2D1E" opacity=".5"/>
+      <circle cx="13" cy="13" r="1.1" fill="#3C2D1E" opacity=".5"/>
+    </pattern>
+  </defs>
+  <rect width="512" height="512" fill="url(#ht)" opacity=".16"/>
+
+  <!-- Zwei Platten, aus der Passung gelaufen -->
+  <g style="mix-blend-mode:multiply">
+    <circle cx="240" cy="250" r="128" fill="#1B3FD6"/>
+    <circle cx="284" cy="268" r="128" fill="#FF3D9A"/>
+  </g>
+
+  <!-- Passermarke -->
+  <g stroke="#FFC93C" stroke-width="14" fill="none" stroke-linecap="square">
+    <circle cx="256" cy="256" r="86"/>
+    <path d="M110 256h292M256 110v292"/>
+  </g>
+  <circle cx="256" cy="256" r="17" fill="#FFC93C"/>
+
+  <!-- Greiferrand -->
+  <rect x="0" y="0" width="512" height="22" fill="#14110F"/>
+  <g fill="#E9E2D0">
+    <rect x="40" y="7" width="34" height="8"/>
+    <rect x="120" y="7" width="34" height="8"/>
+    <rect x="200" y="7" width="34" height="8"/>
+    <rect x="280" y="7" width="34" height="8"/>
+    <rect x="360" y="7" width="34" height="8"/>
+    <rect x="440" y="7" width="34" height="8"/>
+  </g>
+</svg>

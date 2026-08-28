@@ -1,0 +1,29 @@
+{
+  "name": "PASSERMARKEN — 90 Sekunden an der Riso",
+  "short_name": "Passermarken",
+  "description": "Ein-Daumen-Drucksaal-Runner. Du steuerst nicht die Figur, du steuerst die Passung der Druckplatten.",
+  "id": "passermarken",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "display_override": ["fullscreen", "standalone"],
+  "orientation": "portrait",
+  "background_color": "#14110F",
+  "theme_color": "#14110F",
+  "lang": "de",
+  "categories": ["games", "entertainment"],
+  "icons": [
+    {
+      "src": "icon.svg",
+      "type": "image/svg+xml",
+      "sizes": "any",
+      "purpose": "any"
+    },
+    {
+      "src": "icon.svg",
+      "type": "image/svg+xml",
+      "sizes": "any",
+      "purpose": "maskable"
+    }
+  ]
+}

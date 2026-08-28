@@ -1,0 +1,1317 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>PASSERMARKEN — 90 Sekunden an der Riso</title>
+<meta name="description" content="Ein-Daumen-Drucksaal-Runner. Du steuerst nicht die Figur, du steuerst die Passung der Druckplatten. 90 Sekunden pro Bogen.">
+<meta name="theme-color" content="#14110F">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=IBM+Plex+Mono:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+<style>
+/* ══════════════════════════════════════════════════════════════
+   PASSERMARKEN · Farbsystem
+   Papier  #E9E2D0  → der Bogen. Alles was keine Farbe ist.
+   Blau    #1B3FD6  → die ruhende Platte. Ordnung, Raster, Boden.
+   Pink    #FF3D9A  → die wandernde Platte. Gefahr, Drift, Zeit.
+   Gelb    #FFC93C  → die Passermarke. Ziel, Auge, Belohnung.
+   Pflaume #2A1030  → entsteht NUR durch Überdruck = fester Boden.
+   ══════════════════════════════════════════════════════════════ */
+:root{
+  --ink:#14110F; --ink-2:#1D1916; --ink-3:#292320;
+  --paper:#E9E2D0; --blue:#1B3FD6; --pink:#FF3D9A;
+  --yellow:#FFC93C; --plum:#2A1030;
+  --disp:'Archivo Black','Arial Black',system-ui,sans-serif;
+  --mono:'IBM Plex Mono',ui-monospace,SFMono-Regular,Menlo,monospace;
+}
+*{-webkit-tap-highlight-color:transparent}
+html{scroll-behavior:smooth}
+body{
+  background-color:var(--ink);
+  color:var(--paper);
+  font-family:var(--mono);
+  overflow-x:hidden;
+}
+/* ambient: Halftone-Sieb + Pressenraster + langsamer Farbdurchlauf */
+body::before{
+  content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
+  background-image:
+    repeating-radial-gradient(circle at 0 0, rgba(233,226,208,.055) 0 1px, transparent 1px 8px),
+    repeating-linear-gradient(90deg, rgba(233,226,208,.028) 0 1px, transparent 1px 44px),
+    repeating-linear-gradient(0deg, rgba(233,226,208,.018) 0 1px, transparent 1px 44px);
+}
+body::after{
+  content:'';position:fixed;left:0;right:0;height:38vh;top:-40vh;z-index:0;pointer-events:none;
+  background:linear-gradient(180deg,transparent,rgba(255,61,154,.055) 45%,rgba(27,63,214,.075) 60%,transparent);
+  animation:presspass 14s linear infinite;
+}
+@keyframes presspass{0%{top:-40vh}100%{top:120vh}}
+.grain{
+  position:fixed;inset:0;z-index:1;pointer-events:none;opacity:.5;mix-blend-mode:overlay;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23n)' opacity='.42'/%3E%3C/svg%3E");
+}
+main,header,footer,section{position:relative;z-index:2}
+
+/* ── Titel: zwei Platten, die die Passung suchen ─────────────── */
+.reg{position:relative;display:inline-block;line-height:.86;letter-spacing:-.03em}
+.reg::before,.reg::after{
+  content:attr(data-t);position:absolute;left:0;top:0;pointer-events:none;
+  mix-blend-mode:screen;
+}
+.reg::before{color:var(--blue);transform:translate(var(--gx,-7px),-2px)}
+.reg::after{color:var(--pink);transform:translate(var(--gx2,7px),2px)}
+.reg.hunting{animation:hunt 1.5s cubic-bezier(.3,1.5,.4,1) both}
+@keyframes hunt{
+  0%{--gx:-16px;--gx2:16px}
+  22%{--gx:11px;--gx2:-9px}
+  46%{--gx:-5px;--gx2:6px}
+  70%{--gx:2px;--gx2:-2px}
+  100%{--gx:0px;--gx2:0px}
+}
+@property --gx{syntax:'<length>';inherits:false;initial-value:-7px}
+@property --gx2{syntax:'<length>';inherits:false;initial-value:7px}
+.reg-wrap:hover .reg{--gx:-6px;--gx2:6px;transition:none}
+.reg-wrap .reg{transition:--gx .5s cubic-bezier(.2,.9,.2,1),--gx2 .5s cubic-bezier(.2,.9,.2,1)}
+
+.kicker{font-size:11px;letter-spacing:.26em;text-transform:uppercase;color:rgba(233,226,208,.5)}
+.rule{height:1px;background:repeating-linear-gradient(90deg,rgba(233,226,208,.3) 0 6px,transparent 6px 12px)}
+
+/* ── Maschine / Bühne ────────────────────────────────────────── */
+.machine{
+  background:linear-gradient(180deg,#211C19,#151210 40%,#0E0C0B);
+  border:1px solid rgba(233,226,208,.14);
+  box-shadow:0 40px 90px -30px #000, inset 0 1px 0 rgba(233,226,208,.09);
+}
+.slot{
+  position:relative;background:#0B0A09;
+  box-shadow:inset 0 3px 14px rgba(0,0,0,.9), inset 0 -1px 0 rgba(233,226,208,.07);
+}
+.slot::after{ /* Bogen-Schatten am Auswurf */
+  content:'';position:absolute;left:0;right:0;bottom:-14px;height:14px;
+  background:linear-gradient(180deg,rgba(0,0,0,.6),transparent);pointer-events:none;
+}
+#stage{display:flex;align-items:center;justify-content:center}
+#game{touch-action:none;display:block;background:#0B0A09;cursor:crosshair}
+.screw{width:9px;height:9px;border-radius:50%;background:radial-gradient(circle at 30% 30%,#4a4038,#191512);box-shadow:inset 0 0 0 1px rgba(0,0,0,.6)}
+
+/* ── Overlays (kein Glas — gedruckte Ink-Panels) ─────────────── */
+.ov{
+  position:absolute;inset:0;display:flex;flex-direction:column;justify-content:flex-end;
+  background:linear-gradient(180deg,rgba(11,10,9,.35),rgba(11,10,9,.93) 55%);
+  font-family:var(--mono);
+}
+/* ID-Spezifität: garantiert, dass .ov nicht gegen ein Utility verliert */
+#ovMenu.hidden,#ovOver.hidden{display:none!important}
+.ink-panel{
+  background:var(--paper);color:var(--ink);
+  box-shadow:6px 6px 0 rgba(42,16,48,.85), -3px -3px 0 rgba(27,63,214,.5);
+}
+.btn{
+  font-family:var(--disp);letter-spacing:.02em;text-transform:uppercase;
+  background:var(--ink);color:var(--paper);border:0;padding:.85em 1.2em;
+  box-shadow:5px 5px 0 var(--pink);transition:transform .12s cubic-bezier(.2,1.4,.4,1),box-shadow .12s;
+  cursor:pointer;
+}
+.btn:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 var(--pink)}
+.btn:active{transform:translate(3px,3px);box-shadow:1px 1px 0 var(--pink)}
+.btn-ghost{background:transparent;color:var(--ink);box-shadow:5px 5px 0 rgba(42,16,48,.35);border:2px solid var(--ink)}
+.btn-ghost:hover{box-shadow:8px 8px 0 rgba(42,16,48,.35)}
+.chip{
+  border:2px solid rgba(20,17,15,.25);background:transparent;cursor:pointer;
+  transition:transform .15s,border-color .15s,background .15s;
+}
+.chip:hover{transform:translateY(-2px)}
+.chip[aria-pressed="true"]{border-color:var(--ink);background:rgba(20,17,15,.09)}
+.chip[disabled]{opacity:.35;cursor:not-allowed;transform:none}
+
+/* ── Farbkarten: Rakel-Wisch beim Hover ──────────────────────── */
+.swatch{position:relative;overflow:hidden;transition:transform .3s cubic-bezier(.2,.9,.2,1)}
+.swatch:hover{transform:translateY(-6px) rotate(-.6deg)}
+.swatch .inkfill{position:absolute;inset:0;transform:translateY(101%);transition:transform .5s cubic-bezier(.6,0,.2,1)}
+.swatch:hover .inkfill{transform:translateY(0)}
+.swatch:hover .sw-meta{color:var(--ink)}
+.sw-meta{transition:color .3s .12s}
+
+/* ── Bewegungs-Demo-Punkte ───────────────────────────────────── */
+.dot{position:absolute;left:0;top:50%;width:12px;height:12px;margin-top:-6px;background:var(--pink)}
+.d-press{animation:mvPress 2.6s cubic-bezier(.25,1.5,.35,1) infinite}
+.d-spring{animation:mvSpring 2.6s cubic-bezier(.16,1,.3,1) infinite}
+.d-jitter{animation:mvJit 2.6s linear infinite}
+@keyframes mvPress{0%,100%{left:0}50%{left:calc(100% - 12px)}}
+@keyframes mvSpring{0%,100%{left:0}50%{left:calc(100% - 12px)}}
+@keyframes mvJit{0%{left:0}100%{left:calc(100% - 12px)}}
+
+/* ── Scroll-Reveals ──────────────────────────────────────────── */
+.reveal{opacity:0;transform:translateY(26px);transition:opacity .8s cubic-bezier(.2,.8,.2,1),transform .8s cubic-bezier(.2,.8,.2,1)}
+.reveal.in{opacity:1;transform:none}
+.reveal[data-d="1"]{transition-delay:.09s}
+.reveal[data-d="2"]{transition-delay:.18s}
+.reveal[data-d="3"]{transition-delay:.27s}
+.reveal[data-d="4"]{transition-delay:.36s}
+
+.numeral{font-family:var(--disp);font-size:clamp(44px,7vw,86px);line-height:.8;color:transparent;-webkit-text-stroke:1.5px rgba(233,226,208,.32)}
+.tag{display:inline-block;border:1px solid rgba(233,226,208,.28);padding:.22em .6em;font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;color:rgba(233,226,208,.66)}
+pre.tree{font-size:12.5px;line-height:1.75;color:rgba(233,226,208,.78);overflow-x:auto}
+.link-u{position:relative}
+.link-u::after{content:'';position:absolute;left:0;right:0;bottom:-2px;height:2px;background:var(--yellow);transform:scaleX(0);transform-origin:left;transition:transform .35s cubic-bezier(.2,.9,.2,1)}
+.link-u:hover::after{transform:scaleX(1)}
+#demo{touch-action:none;display:block;width:100%;cursor:grab}
+#demo:active{cursor:grabbing}
+::selection{background:var(--pink);color:#fff}
+@media (prefers-reduced-motion:reduce){*{animation-duration:.001ms!important;transition-duration:.001ms!important}}
+</style>
+</head>
+<body>
+<div class="grain" aria-hidden="true"></div>
+
+<!-- ═══════════════ DRUCKSAAL · BÜHNE ═══════════════ -->
+<header class="max-w-[1240px] mx-auto px-5 sm:px-8 pt-7 pb-4">
+  <div class="flex items-center justify-between gap-4 text-[10.5px] tracking-[.22em] uppercase text-[rgba(233,226,208,.5)]">
+    <span>Drucksaal B · Nachtschicht</span>
+    <span class="hidden sm:inline">Riso RP-3700 · 2 Platten + 1 Ziel</span>
+    <span id="clock">03:14</span>
+  </div>
+  <div class="rule mt-3"></div>
+</header>
+
+<main class="max-w-[1240px] mx-auto px-5 sm:px-8">
+
+  <!-- BÜHNE -->
+  <section class="grid lg:grid-cols-[minmax(0,1fr)_auto] gap-10 lg:gap-14 items-end pt-4 pb-16">
+
+    <div class="order-2 lg:order-1 lg:pb-6">
+      <p class="kicker mb-5">Ein-Daumen-Drucksaal-Runner · 90 s pro Bogen</p>
+
+      <h1 class="reg-wrap mb-6">
+        <span class="reg hunting block font-[var(--disp)]" style="font-family:var(--disp);font-size:clamp(58px,13.5vw,142px)" data-t="PASSER">PASSER</span>
+        <span class="reg hunting block font-[var(--disp)]" style="font-family:var(--disp);font-size:clamp(58px,13.5vw,142px);animation-delay:.12s" data-t="MARKEN">MARKEN</span>
+      </h1>
+
+      <p class="max-w-[46ch] text-[15px] leading-relaxed text-[rgba(233,226,208,.78)]">
+        Du bewegst nicht die Figur. Du bewegst die <strong class="text-[var(--yellow)] font-semibold">Passung der Druckplatten</strong>.
+        Boden existiert nur dort, wo Blau und Pink sich überdecken — und die Pink-Platte driftet.
+        Lass den Bogen unpassiert raus, ist die Auflage ruiniert.
+      </p>
+
+      <dl class="mt-8 grid grid-cols-2 sm:grid-cols-4 gap-x-4 gap-y-5 max-w-[620px]">
+        <div><dt class="kicker mb-1">Session</dt><dd style="font-family:var(--disp);font-size:26px">90 s</dd></div>
+        <div><dt class="kicker mb-1">Eingabe</dt><dd style="font-family:var(--disp);font-size:26px">1 Daumen</dd></div>
+        <div><dt class="kicker mb-1">Platten</dt><dd style="font-family:var(--disp);font-size:26px">2 + 1</dd></div>
+        <div><dt class="kicker mb-1">Bundle</dt><dd style="font-family:var(--disp);font-size:26px">0 Assets</dd></div>
+      </dl>
+
+      <div class="rule my-8 max-w-[620px]"></div>
+
+      <div class="flex flex-wrap items-center gap-3 max-w-[620px]">
+        <span class="tag">Vanilla TS · Canvas 2D</span>
+        <span class="tag">LocalStorage</span>
+        <span class="tag">Offline-PWA</span>
+        <span class="tag">multiply-Overprint</span>
+        <span class="tag">WebAudio, keine Samples</span>
+      </div>
+    </div>
+
+    <!-- MASCHINE -->
+    <div class="order-1 lg:order-2 w-full lg:w-auto flex justify-center">
+      <div class="machine p-3 sm:p-4 rounded-[3px] w-full max-w-[420px] lg:max-w-none">
+        <div class="flex items-center justify-between px-1 pb-3">
+          <div class="flex gap-1.5"><i class="screw"></i><i class="screw"></i></div>
+          <div class="text-[9.5px] tracking-[.28em] uppercase text-[rgba(233,226,208,.42)]">Risograph RP-3700</div>
+          <div class="flex gap-1.5"><i class="screw"></i><i class="screw"></i></div>
+        </div>
+        <div class="slot p-2">
+          <div id="stage" class="relative w-full" style="aspect-ratio:420/760;max-height:min(74vh,760px)">
+            <canvas id="game" width="420" height="760" class="w-full h-full"></canvas>
+
+            <!-- MENÜ -->
+            <div id="ovMenu" class="ov p-4">
+              <div class="ink-panel p-5">
+                <div class="flex items-baseline justify-between gap-3 mb-3">
+                  <h2 style="font-family:var(--disp);font-size:30px;line-height:.9">BOGEN<br>EINLEGEN</h2>
+                  <div class="text-right text-[11px] leading-tight">
+                    <div class="kicker !text-[rgba(20,17,15,.5)]">Bestauflage</div>
+                    <div id="menuBest" style="font-family:var(--disp);font-size:24px">0</div>
+                  </div>
+                </div>
+                <div class="rule !bg-[rgba(20,17,15,.2)] mb-3"></div>
+                <ul class="text-[11.5px] leading-[1.7] mb-4 space-y-1">
+                  <li><b class="text-[var(--blue)]">■</b> <b class="text-[var(--pink)]">■</b> Überdruck = fester Boden. Nur da.</li>
+                  <li><b>Tippen</b> → Sprung &nbsp;·&nbsp; <b>Wischen</b> → Platten verschieben</li>
+                  <li><b style="color:#B8860B">✛</b> Passermarken sammeln = Farbe + Combo</li>
+                  <li><b>Spritzer</b> kehren die Steuerung um. Vorsicht.</li>
+                </ul>
+                <div class="mb-4">
+                  <div class="kicker !text-[rgba(20,17,15,.5)] mb-2">Spot-Farben</div>
+                  <div id="palRow" class="flex gap-2"></div>
+                </div>
+                <button id="btnStart" class="btn w-full text-[15px]">Anwerfen</button>
+                <div class="flex items-center justify-between mt-3 text-[10.5px] text-[rgba(20,17,15,.55)]">
+                  <button id="btnSound" class="link-u uppercase tracking-[.14em]">Ton: an</button>
+                  <button id="btnHap" class="link-u uppercase tracking-[.14em]">Haptik: an</button>
+                  <span id="stRuns">0 Bögen gefahren</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- ENDE -->
+            <div id="ovOver" class="ov p-4 hidden">
+              <div class="ink-panel p-5">
+                <div id="ovTitle" style="font-family:var(--disp);font-size:34px;line-height:.88" class="mb-1">BOGEN<br>VERLOREN</div>
+                <div id="ovSub" class="text-[11.5px] text-[rgba(20,17,15,.62)] mb-4 leading-snug">Die Farben standen nie zusammen.</div>
+                <div id="ovNew" class="hidden mb-3 text-[11px] uppercase tracking-[.2em] bg-[var(--yellow)] inline-block px-2 py-1">★ Neue Bestauflage</div>
+                <div class="grid grid-cols-2 gap-x-4 gap-y-3 mb-5">
+                  <div><div class="kicker !text-[rgba(20,17,15,.5)]">Auflage</div><div id="stScore" style="font-family:var(--disp);font-size:28px">0</div></div>
+                  <div><div class="kicker !text-[rgba(20,17,15,.5)]">Passermarken</div><div id="stMarks" style="font-family:var(--disp);font-size:28px">0</div></div>
+                  <div><div class="kicker !text-[rgba(20,17,15,.5)]">Beste Serie</div><div id="stCombo" style="font-family:var(--disp);font-size:28px">0</div></div>
+                  <div><div class="kicker !text-[rgba(20,17,15,.5)]">Bogenstand</div><div id="stTime" style="font-family:var(--disp);font-size:28px">0 s</div></div>
+                </div>
+                <div id="ovUnlock" class="hidden mb-4 text-[11.5px] border-l-4 border-[var(--pink)] pl-3"></div>
+                <div class="flex gap-3">
+                  <button id="btnAgain" class="btn flex-1 text-[14px]">Neuer Bogen</button>
+                  <button id="btnMenu" class="btn btn-ghost text-[12px]">Menü</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="flex items-center justify-between px-1 pt-3 text-[9.5px] tracking-[.2em] uppercase text-[rgba(233,226,208,.4)]">
+          <span>Auswurf ↓</span>
+          <span id="fps" class="tabular-nums">— fps</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- TWIST -->
+  <section class="py-16 border-t border-[rgba(233,226,208,.12)]">
+    <div class="grid lg:grid-cols-[minmax(0,1.05fr)_minmax(0,1fr)] gap-10 lg:gap-16 items-center">
+      <div class="reveal">
+        <p class="kicker mb-4">01 — Der Twist</p>
+        <h2 style="font-family:var(--disp);font-size:clamp(34px,5.4vw,60px);line-height:.94" class="reg-wrap mb-6">
+          <span class="reg block" data-t="DU STEUERST">DU STEUERST</span>
+          <span class="reg block text-[var(--yellow)]" data-t="DIE MASCHINE">DIE MASCHINE</span>
+        </h2>
+        <p class="text-[15px] leading-relaxed text-[rgba(233,226,208,.78)] max-w-[50ch] mb-5">
+          In jedem Runner steuerst du die Figur. Hier ist die Figur nur ein Zeiger: Sie läuft stur nach rechts
+          und fällt. Was du mit dem Daumen bewegst, ist der <em class="text-[var(--yellow)] not-italic">Seitenversatz zwischen zwei Druckplatten</em>.
+          Der Boden ist keine Geometrie, die jemand hingebaut hat — er ist das <strong>Rechteck, in dem zwei Farbschichten sich schneiden</strong>,
+          in Echtzeit berechnet. Verschiebst du zu weit, verschwindet der Boden unter den Füßen, bevor du landest.
+        </p>
+        <p class="text-[15px] leading-relaxed text-[rgba(233,226,208,.78)] max-w-[50ch]">
+          Der Versatz folgt dabei einer wandernden Kurve, nicht dem Zufall: Passung wird zu einer
+          <strong class="text-[var(--pink)]">kontinuierlichen Lenkbewegung</strong> statt zu diskreten Sprüngen.
+          Der Daumen fährt die Maschine nach, während er gleichzeitig springt. Das ist die ganze Regel.
+        </p>
+        <div class="flex gap-3 mt-7 flex-wrap">
+          <span class="tag">Overlap ≥ 6 px = tragfähig</span>
+          <span class="tag">Drift ±95 px</span>
+          <span class="tag">Federkonstante 13 /s</span>
+        </div>
+      </div>
+
+      <div class="reveal" data-d="1">
+        <div class="machine p-4">
+          <div class="flex items-center justify-between mb-3 text-[10px] tracking-[.22em] uppercase text-[rgba(233,226,208,.5)]">
+            <span>Passungs-Prüfstand</span><span id="demoPct" class="text-[var(--yellow)] tabular-nums">— %</span>
+          </div>
+          <canvas id="demo" height="230"></canvas>
+          <p class="text-[11.5px] text-[rgba(233,226,208,.55)] mt-3 leading-snug">Zieh die pinkfarbene Platte. Der dunkle Streifen ist tragfähiger Boden — exakt die Rechnung, die im Spiel pro Frame läuft.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FARBSYSTEM -->
+  <section class="py-16 border-t border-[rgba(233,226,208,.12)]">
+    <div class="flex flex-wrap items-end justify-between gap-6 mb-10 reveal">
+      <div>
+        <p class="kicker mb-4">02 — Farbsystem</p>
+        <h2 style="font-family:var(--disp);font-size:clamp(30px,4.6vw,52px);line-height:.95">VIER TÖNE.<br>KEINE DEKORATION.</h2>
+      </div>
+      <p class="text-[13px] text-[rgba(233,226,208,.6)] max-w-[38ch] leading-relaxed">
+        Jede Farbe hat eine Aufgabe im Regelwerk. Pflaume steht nicht im System —
+        sie entsteht ausschließlich als Produkt von Blau × Pink. Wer gut spielt, sieht mehr Pflaume.
+      </p>
+    </div>
+
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div class="swatch reveal" data-d="0">
+        <div class="relative h-52 border border-[rgba(233,226,208,.14)]" style="background:var(--paper)">
+          <div class="inkfill" style="background:var(--paper)"></div>
+          <div class="absolute inset-0 p-4 flex flex-col justify-between sw-meta" style="color:var(--ink)">
+            <span class="text-[10px] tracking-[.22em] uppercase opacity-60">01 · Bogen</span>
+            <div>
+              <div style="font-family:var(--disp);font-size:20px">#E9E2D0</div>
+              <div class="text-[11px] leading-snug mt-1 opacity-75">Das Papier. Alles, was keine Farbe trägt, ist Risiko.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="swatch reveal" data-d="1">
+        <div class="relative h-52 border border-[rgba(233,226,208,.14)]" style="background:#0E1130">
+          <div class="inkfill" style="background:var(--blue)"></div>
+          <div class="absolute inset-0 p-4 flex flex-col justify-between sw-meta text-[var(--paper)]">
+            <span class="text-[10px] tracking-[.22em] uppercase opacity-60">02 · Platte A</span>
+            <div>
+              <div style="font-family:var(--disp);font-size:20px">#1B3FD6</div>
+              <div class="text-[11px] leading-snug mt-1 opacity-80">Federal Blau. Die ruhende Platte — Raster, Ordnung, Referenz.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="swatch reveal" data-d="2">
+        <div class="relative h-52 border border-[rgba(233,226,208,.14)]" style="background:#2A0A1C">
+          <div class="inkfill" style="background:var(--pink)"></div>
+          <div class="absolute inset-0 p-4 flex flex-col justify-between sw-meta text-[var(--paper)]">
+            <span class="text-[10px] tracking-[.22em] uppercase opacity-60">03 · Platte B</span>
+            <div>
+              <div style="font-family:var(--disp);font-size:20px">#FF3D9A</div>
+              <div class="text-[11px] leading-snug mt-1 opacity-80">Fluo-Pink. Die driftende Platte — Zeit, Gefahr, Dringlichkeit.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="swatch reveal" data-d="3">
+        <div class="relative h-52 border border-[rgba(233,226,208,.14)]" style="background:#3A2E08">
+          <div class="inkfill" style="background:var(--yellow)"></div>
+          <div class="absolute inset-0 p-4 flex flex-col justify-between sw-meta" style="color:var(--ink)">
+            <span class="text-[10px] tracking-[.22em] uppercase opacity-60">04 · Akzent</span>
+            <div>
+              <div style="font-family:var(--disp);font-size:20px">#FFC93C</div>
+              <div class="text-[11px] leading-snug mt-1 opacity-75">Signal-Gelb. Nur für Passermarken — das Ziel, das Auge, die Belohnung.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <p class="text-[12px] text-[rgba(233,226,208,.45)] mt-4 reveal">
+      Ergebnis des Overprints: <span class="inline-block align-middle w-4 h-4 mr-1" style="background:var(--plum)"></span>
+      <b class="text-[rgba(233,226,208,.75)]">#2A1030 Pflaume</b> — kein Design-Token, sondern die Multiplikation zweier Platten.
+    </p>
+  </section>
+
+  <!-- BEWEGUNG -->
+  <section class="py-16 border-t border-[rgba(233,226,208,.12)]">
+    <div class="mb-10 reveal">
+      <p class="kicker mb-4">03 — Bewegung</p>
+      <h2 style="font-family:var(--disp);font-size:clamp(30px,4.6vw,52px);line-height:.95">SCHWERES PAPIER,<br>NERVÖSE FARBE.</h2>
+    </div>
+    <div class="grid md:grid-cols-3 gap-6">
+      <div class="reveal border border-[rgba(233,226,208,.14)] p-5">
+        <div class="relative h-10 mb-4 bg-[rgba(233,226,208,.06)]"><i class="dot d-press" style="background:var(--blue)"></i></div>
+        <h3 style="font-family:var(--disp);font-size:19px" class="mb-2">Pressen-Takt</h3>
+        <p class="text-[12.5px] leading-relaxed text-[rgba(233,226,208,.66)]">Alles, was landet, quantelt auf ein 2-px-Raster und staucht sich für ein Frame. Kein weiches Aufsetzen — der Greiferrand fasst den Bogen.</p>
+        <code class="block mt-3 text-[11px] text-[var(--yellow)]">cubic-bezier(.25,1.5,.35,1) · 90 ms</code>
+      </div>
+      <div class="reveal border border-[rgba(233,226,208,.14)] p-5" data-d="1">
+        <div class="relative h-10 mb-4 bg-[rgba(233,226,208,.06)]"><i class="dot d-spring" style="background:var(--pink)"></i></div>
+        <h3 style="font-family:var(--disp);font-size:19px" class="mb-2">Feder-Passung</h3>
+        <p class="text-[12.5px] leading-relaxed text-[rgba(233,226,208,.66)]">Der Daumen gibt ein Ziel vor, die Platte folgt exponentiell nach. Der Versatz hat Trägheit — man lenkt eine Maschine, keine Maus.</p>
+        <code class="block mt-3 text-[11px] text-[var(--yellow)]">reg += (ziel-reg)·(1-e^(-13·dt))</code>
+      </div>
+      <div class="reveal border border-[rgba(233,226,208,.14)] p-5" data-d="2">
+        <div class="relative h-10 mb-4 bg-[rgba(233,226,208,.06)]"><i class="dot d-jitter" style="background:var(--yellow);animation-timing-function:steps(24)"></i></div>
+        <h3 style="font-family:var(--disp);font-size:19px" class="mb-2">Maschinen-Zittern</h3>
+        <p class="text-[12.5px] leading-relaxed text-[rgba(233,226,208,.66)]">0,6 px Sinus-Vibration bei 30 Hz auf den Platten, rein optisch. Die Maschine lebt, ohne je unfair zu werden — die Kollisionsrechnung bleibt jitterfrei.</p>
+        <code class="block mt-3 text-[11px] text-[var(--yellow)]">sin(t·30)·0.6 px · render-only</code>
+      </div>
+    </div>
+  </section>
+
+  <!-- PAKET -->
+  <section class="py-16 border-t border-[rgba(233,226,208,.12)]">
+    <div class="grid lg:grid-cols-[minmax(0,.85fr)_minmax(0,1.15fr)] gap-10 lg:gap-16">
+      <div class="reveal">
+        <p class="kicker mb-4">04 — Paket & Build</p>
+        <h2 style="font-family:var(--disp);font-size:clamp(28px,4.2vw,46px);line-height:.95" class="mb-6">NULL ABHÄNGIGKEITEN,<br>EINE DATEI.</h2>
+        <pre class="tree">passermarken/
+├─ index.html          # Build (Spiel inline, läuft auch von file://)
+├─ src/game.ts         # typisierte Quelle · strict
+├─ sw.js               # Cache-First, netzwerkfrei nach 1. Load
+├─ manifest.webmanifest
+├─ icon.svg            # Passermarke, Vektor
+├─ package.json
+├─ tsconfig.json
+└─ README.md</pre>
+        <pre class="tree mt-5"><b class="text-[var(--paper)]"># entwickeln</b>
+npm run dev        # statischer Server, HMR-frei
+
+<b class="text-[var(--paper)]"># typprüfen + bauen</b>
+npm run typecheck  # tsc --strict --noEmit
+npm run build      # tsc → dist → inline nach index.html
+
+<b class="text-[var(--paper)]"># installieren</b>
+npm run build && npx serve .   # → „Installieren" im Browser</pre>
+        <p class="text-[12px] text-[rgba(233,226,208,.5)] mt-5 leading-relaxed">
+          Der Service Worker liegt mit Absicht im Root-Scope und versioniert über einen Build-Hash.
+          Nach dem ersten Laden läuft das Spiel im Flugmodus, aus dem Standalone-Icon und von <code>file://</code>.
+        </p>
+      </div>
+
+      <div>
+        <p class="kicker mb-6 reveal">05 — Fünf Polish-Entscheidungen, die es vom MVP trennen</p>
+        <ol class="space-y-6">
+          <li class="flex gap-5 reveal">
+            <span class="numeral">01</span>
+            <div><h3 style="font-family:var(--disp);font-size:17px" class="mb-1.5">Die Figur trägt den Fehler</h3>
+            <p class="text-[13px] leading-relaxed text-[rgba(233,226,208,.7)]">Der Läufer wird dreifach gedruckt: Blau, Pink, Pflaume. Der Offset der Geisterplatten ist exakt der aktuelle Passungsfehler. Bei perfekter Registerung steht da eine einzige, messerscharfe Figur — <em>Können wird zur Grafik</em>, ohne Zahlen-UI.</p></div>
+          </li>
+          <li class="flex gap-5 reveal" data-d="1">
+            <span class="numeral">02</span>
+            <div><h3 style="font-family:var(--disp);font-size:17px" class="mb-1.5">Echter Overprint statt Fake-Glow</h3>
+            <p class="text-[13px] leading-relaxed text-[rgba(233,226,208,.7)]">Jede Farbe läuft durch <code>multiply</code>. Gelbe Passermarken werden über Blau grün und über Pink orange — wie auf einem echten Riso-Bogen. Der dunkle Boden ist kein Highlight-Layer, sondern das arithmetische Produkt zweier Platten.</p></div>
+          </li>
+          <li class="flex gap-5 reveal" data-d="2">
+            <span class="numeral">03</span>
+            <div><h3 style="font-family:var(--disp);font-size:17px" class="mb-1.5">Farbausfall als Drama, nicht als Tod</h3>
+            <p class="text-[13px] leading-relaxed text-[rgba(233,226,208,.7)]">Läuft die Farbe leer, übernimmt die Maschine 3,5 s die Plattensteuerung (Random Walk), der Bildschirm verliert die Registerung, der Pressenton bricht ein. Danach gibt es 50 % Farbe zurück. Scheitern fühlt sich nach Maschine an, nicht nach Game Over.</p></div>
+          </li>
+          <li class="flex gap-5 reveal" data-d="3">
+            <span class="numeral">04</span>
+            <div><h3 style="font-family:var(--disp);font-size:17px" class="mb-1.5">Die Maschine ist der Soundtrack</h3>
+            <p class="text-[13px] leading-relaxed text-[rgba(233,226,208,.7)]">Kein einziges Audio-Asset: zwei verstimmte Sägezähne bilden das Pressenbrummen, dessen Tonhöhe der Vorschubgeschwindigkeit folgt; Landungen sind bandpassgefilterte Rausch-Klicks; Spritzer bitcrushen. Das PWA bleibt unter 60 KB.</p></div>
+          </li>
+          <li class="flex gap-5 reveal" data-d="4">
+            <span class="numeral">05</span>
+            <div><h3 style="font-family:var(--disp);font-size:17px" class="mb-1.5">Papier mit Gedächtnis</h3>
+            <p class="text-[13px] leading-relaxed text-[rgba(233,226,208,.7)]">Faserkorn (vorgerenderte Noise-Kachel), Halftone-Rosette, Transportlochkante, die mit der Welt scrollt, Greiferrand oben, Auswurfschatten unten. Der Bogen bewegt sich sichtbar durch die Maschine — der Fortschritt wird haptisch, nicht nur als Balken.</p></div>
+          </li>
+        </ol>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer class="border-t border-[rgba(233,226,208,.12)] mt-6">
+  <div class="max-w-[1240px] mx-auto px-5 sm:px-8 py-10 flex flex-wrap items-end justify-between gap-6">
+    <div>
+      <div class="reg-wrap mb-2">
+        <span class="reg inline-block" style="font-family:var(--disp);font-size:26px" data-t="PASSERMARKEN">PASSERMARKEN</span>
+      </div>
+      <p class="text-[11.5px] text-[rgba(233,226,208,.45)]">Drucksaal B · Nachtschicht · Auflage unlimitiert · Fehldrucke werden nicht weggeworfen, sie werden gespielt.</p>
+    </div>
+    <p id="logline" class="text-[11.5px] text-[rgba(233,226,208,.4)] max-w-[36ch]">Farbe nachgefüllt. Walze läuft. Weitermachen.</p>
+  </div>
+</footer>
+
+<script id="engine">
+/* @@BUILD:START — generiert aus src/game.ts (npm run build). Nicht von Hand editieren. */
+(function () {
+  'use strict';
+
+  /* ── Konstanten ─────────────────────────────────────────────── */
+  const VW = 420, VH = 760, HUD = 64, PH = VH - HUD;
+  const RUNTIME = 90;
+  const G = 1520, JUMPV = -655;
+  const RUN_X = 110;
+  const REG_MAX = 112;
+  const PAPER = '#E9E2D0';
+  const PLUM = '#2A1030';
+  const KEY = 'passermarken.v2';
+
+  const PALETTES = [
+    { name: 'Federal Blau / Fluo-Pink', blue: '#1B3FD6', pink: '#FF3D9A', accent: '#FFC93C', need: 0 },
+    { name: 'Grasgrün / Fluo-Orange',   blue: '#0E8F4E', pink: '#FF5A2B', accent: '#FFE04B', need: 1800 },
+    { name: 'Schwarz / Fluo-Gelb',      blue: '#191A1C', pink: '#7C7F86', accent: '#FFD400', need: 4200 },
+    { name: 'Violett / Türkis',         blue: '#4B2A9B', pink: '#00A6A0', accent: '#FF9AC1', need: 9000 }
+  ];
+
+  /* ── Persistenz ─────────────────────────────────────────────── */
+  const DEF = { best: 0, runs: 0, sheets: 0, marks: 0, pal: 0, sound: true, hap: true };
+  let S = DEF;
+  try { S = Object.assign({}, DEF, JSON.parse(localStorage.getItem(KEY) || '{}')); } catch (e) { S = DEF; }
+  const save = () => { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} };
+
+  /* ── Helpers ────────────────────────────────────────────────── */
+  const clamp = (v, a, b) => v < a ? a : v > b ? b : v;
+  const rnd = (a, b) => a + Math.random() * (b - a);
+  const pick = a => a[(Math.random() * a.length) | 0];
+  const $ = id => document.getElementById(id);
+
+  /* ── Audio: die Maschine ────────────────────────────────────── */
+  const Audio2 = {
+    ctx: null, hum: null, humG: null, f1: null, f2: null, master: null, noise: null,
+    init() {
+      if (this.ctx) return;
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if (!AC) return;
+      this.ctx = new AC();
+      this.master = this.ctx.createGain();
+      this.master.gain.value = S.sound ? 0.9 : 0;
+      this.master.connect(this.ctx.destination);
+      const len = this.ctx.sampleRate * 0.5;
+      this.noise = this.ctx.createBuffer(1, len, this.ctx.sampleRate);
+      const d = this.noise.getChannelData(0);
+      for (let i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
+      this.f1 = this.ctx.createOscillator(); this.f1.type = 'sawtooth'; this.f1.frequency.value = 51;
+      this.f2 = this.ctx.createOscillator(); this.f2.type = 'sawtooth'; this.f2.frequency.value = 51.9;
+      const lp = this.ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 240;
+      this.humG = this.ctx.createGain(); this.humG.gain.value = 0;
+      this.f1.connect(lp); this.f2.connect(lp); lp.connect(this.humG); this.humG.connect(this.master);
+      this.f1.start(); this.f2.start();
+    },
+    resume() { this.init(); if (this.ctx && this.ctx.state === 'suspended') this.ctx.resume(); },
+    toggle(on) { S.sound = on; save(); if (this.master) this.master.gain.value = on ? 0.9 : 0; },
+    humLevel(v) { if (!this.humG) return; this.humG.gain.setTargetAtTime(v, this.ctx.currentTime, 0.2); },
+    humPitch(sp) {
+      if (!this.f1) return;
+      const f = 46 + (sp - 200) * 0.09;
+      this.f1.frequency.setTargetAtTime(f, this.ctx.currentTime, 0.3);
+      this.f2.frequency.setTargetAtTime(f * 1.017, this.ctx.currentTime, 0.3);
+    },
+    click(freq, gain, dur) {
+      if (!this.ctx) return;
+      const s = this.ctx.createBufferSource(); s.buffer = this.noise;
+      const bp = this.ctx.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = freq; bp.Q.value = 1.1;
+      const g = this.ctx.createGain();
+      g.gain.setValueAtTime(gain, this.ctx.currentTime);
+      g.gain.exponentialRampToValueAtTime(0.0001, this.ctx.currentTime + dur);
+      s.connect(bp); bp.connect(g); g.connect(this.master); s.start(); s.stop(this.ctx.currentTime + dur);
+    },
+    blip(a, b, dur, type) {
+      if (!this.ctx) return;
+      const o = this.ctx.createOscillator(); o.type = type || 'square';
+      const g = this.ctx.createGain();
+      o.frequency.setValueAtTime(a, this.ctx.currentTime);
+      o.frequency.exponentialRampToValueAtTime(b, this.ctx.currentTime + dur);
+      g.gain.setValueAtTime(0.12, this.ctx.currentTime);
+      g.gain.exponentialRampToValueAtTime(0.0001, this.ctx.currentTime + dur);
+      o.connect(g); g.connect(this.master); o.start(); o.stop(this.ctx.currentTime + dur);
+    },
+    land() { this.click(1750, 0.16, 0.055); },
+    jump() { this.blip(300, 620, 0.09, 'triangle'); },
+    mark(c) { this.blip(760 + Math.min(c, 9) * 55, 1500 + Math.min(c, 9) * 70, 0.09, 'square'); },
+    klack() { this.click(900, 0.2, 0.05); },
+    fail() { this.blip(300, 60, 0.6, 'sawtooth'); this.click(300, 0.25, 0.4); },
+    win() { [523, 659, 784, 1047].forEach((f, i) => setTimeout(() => this.blip(f, f * 1.5, 0.16, 'triangle'), i * 90)); },
+    gear() { this.blip(180, 90, 0.16, 'square'); this.click(2400, 0.18, 0.09); }
+  };
+  const buzz = ms => { if (S.hap && navigator.vibrate) { try { navigator.vibrate(ms); } catch (e) {} } };
+
+  /* ── Canvas ─────────────────────────────────────────────────── */
+  const cv = $('game'), ctx = cv.getContext('2d', { alpha: false });
+  const stage = $('stage');
+  let scale = 1;
+
+  function fit() {
+    const r = stage.getBoundingClientRect();
+    const s = Math.min(r.width / VW, r.height / VH);
+    const dpr = Math.min(window.devicePixelRatio || 1, 2.5);
+    cv.width = Math.round(VW * s * dpr); cv.height = Math.round(VH * s * dpr);
+    cv.style.width = (VW * s) + 'px'; cv.style.height = (VH * s) + 'px';
+    scale = s * dpr;
+  }
+  addEventListener('resize', fit);
+
+  /* Papier-Texturen vorrendern */
+  function makeTile(size, fn) {
+    const c = document.createElement('canvas'); c.width = c.height = size;
+    fn(c.getContext('2d'), size); return ctx.createPattern(c, 'repeat');
+  }
+  const grainPat = makeTile(110, (g, s) => {
+    const im = g.createImageData(s, s);
+    for (let i = 0; i < im.data.length; i += 4) {
+      const v = 120 + Math.random() * 135;
+      im.data[i] = im.data[i + 1] = im.data[i + 2] = v; im.data[i + 3] = 255;
+    }
+    g.putImageData(im, 0, 0);
+  });
+  const halfPat = makeTile(10, (g) => {
+    g.fillStyle = 'rgba(60,45,30,0.9)';
+    g.beginPath(); g.arc(2.5, 2.5, 1.05, 0, 7); g.fill();
+    g.beginPath(); g.arc(7.5, 7.5, 0.75, 0, 7); g.fill();
+  });
+
+  /* ── Zustand ────────────────────────────────────────────────── */
+  const G_ = {
+    mode: 'menu', t: 0, dist: 0, speed: 205, gear: 1,
+    reg: 0, regT: 0, drift: 0, driftV: 0,
+    ink: 100, fail: 0, failW: 0, smear: 0,
+    score: 0, combo: 0, comboMax: 0, marks: 0, sheets: 3,
+    blue: [], pink: [], marks_: [], blobs: [], grounds: [],
+    parts: [], toasts: [], shake: 0, flash: 0, invuln: 0, genX: 0, lastY: 400,
+    r: { y: 400, vy: 0, ground: false, coyote: 0, buf: 0, phase: 0 }
+  };
+
+  const pal = () => PALETTES[clamp(S.pal, 0, PALETTES.length - 1)];
+
+  /* ── Level-Generator ────────────────────────────────────────── */
+  function genChunk(x, diff) {
+    const y = clamp(G_.lastY + rnd(-72, 72), 210, 570);
+    G_.lastY = y;
+    const w = rnd(150, 262);
+    G_.driftV = clamp(G_.driftV + rnd(-34, 34), -46, 46);
+    G_.drift = clamp(G_.drift + G_.driftV * 0.5, -95 * diff, 95 * diff);
+    const d = G_.drift, dy = rnd(-9, 9);
+
+    G_.blue.push({ x: x, y: y, w: w, h: 18 });
+    const p = { x: x + d, y: y + dy, w: w, h: 18, d: d };
+    G_.pink.push(p);
+
+    if (Math.random() < 0.3 + diff * 0.2) {           // zweite, höhere Plattform
+      const y2 = clamp(y - rnd(105, 150), 170, 480);
+      const w2 = rnd(90, 150);
+      G_.blue.push({ x: x + rnd(-20, 40), y: y2, w: w2, h: 16 });
+      G_.pink.push({ x: x + d * 0.55 + rnd(-20, 40), y: y2 + rnd(-6, 6), w: w2, h: 16, d: d * 0.55 });
+      if (Math.random() < 0.7) G_.marks_.push({ x: x + 60, y: y2 - 34, got: false });
+    }
+    if (Math.random() < 0.62) G_.marks_.push({ x: x + w * rnd(0.35, 0.75), y: y - rnd(44, 92), got: false });
+    if (Math.random() < 0.16 + diff * 0.14) {
+      G_.blobs.push({ x: x + w * rnd(0.4, 0.9), y: y - rnd(20, 40), r: rnd(11, 16), seed: Math.random() * 99 });
+    }
+    return x + w + rnd(10, 58);
+  }
+
+  function generate() {
+    while (G_.genX < G_.dist + 1100) G_.genX = genChunk(G_.genX, clamp(0.5 + G_.t / RUNTIME, 0.5, 1.35));
+    const lim = G_.dist - 420;
+    G_.blue = G_.blue.filter(r => r.x + r.w > lim);
+    G_.pink = G_.pink.filter(r => r.x + r.w > lim);
+    G_.marks_ = G_.marks_.filter(m => m.x > lim);
+    G_.blobs = G_.blobs.filter(b => b.x > lim);
+  }
+
+  /* ── Passung: Schnittmenge beider Platten = tragfähiger Boden ── */
+  function computeGrounds() {
+    const L = G_.dist - 180, R = G_.dist + 620, gs = [];
+    const reg = G_.reg;
+    for (let i = 0; i < G_.blue.length; i++) {
+      const b = G_.blue[i];
+      if (b.x + b.w < L || b.x > R) continue;
+      for (let j = 0; j < G_.pink.length; j++) {
+        const p = G_.pink[j], px = p.x + reg;
+        if (px + p.w < b.x || px > b.x + b.w) continue;
+        const x1 = Math.max(b.x, px), x2 = Math.min(b.x + b.w, px + p.w);
+        const y1 = Math.max(b.y, p.y), y2 = Math.min(b.y + b.h, p.y + p.h);
+        if (x2 - x1 < 6 || y2 - y1 < 5) continue;
+        gs.push({ x: x1, y: y1, w: x2 - x1, h: y2 - y1 });
+      }
+    }
+    G_.grounds = gs;
+  }
+
+  /* ── Partikel / Toasts ──────────────────────────────────────── */
+  function burst(x, y, n, col, spd) {
+    for (let i = 0; i < n; i++) {
+      const a = rnd(0, 6.283), v = rnd(spd * 0.3, spd);
+      G_.parts.push({ x: x, y: y, vx: Math.cos(a) * v, vy: Math.sin(a) * v - 40, l: 1, col: col, s: rnd(1.6, 4.2) });
+    }
+  }
+  function toast(txt, col, big) { G_.toasts.push({ txt: txt, col: col, l: 1, big: !!big, y: 0 }); }
+
+  /* ── Start / Ende ───────────────────────────────────────────── */
+  function reset() {
+    G_.t = 0; G_.dist = 0; G_.speed = 205; G_.gear = 1;
+    G_.reg = 0; G_.regT = 0; G_.drift = 0; G_.driftV = 0;
+    G_.ink = 100; G_.fail = 0; G_.smear = 0;
+    G_.score = 0; G_.combo = 0; G_.comboMax = 0; G_.marks = 0; G_.sheets = 3;
+    G_.blue = []; G_.pink = []; G_.marks_ = []; G_.blobs = []; G_.parts = []; G_.toasts = [];
+    G_.genX = -60; G_.lastY = 420; G_.shake = 0; G_.flash = 0; G_.invuln = 0;
+    G_.r = { y: 380, vy: 0, ground: false, coyote: 0, buf: 0, phase: 0 };
+    G_.blue.push({ x: -60, y: 430, w: 420, h: 18 });
+    G_.pink.push({ x: -60, y: 430, w: 420, h: 18, d: 0 });
+    generate();
+  }
+
+  function start() {
+    Audio2.resume(); reset();
+    G_.mode = 'play';
+    $('ovMenu').classList.add('hidden'); $('ovOver').classList.add('hidden');
+    Audio2.humLevel(0.05);
+    toast('BOGEN LÄUFT', '#FFC93C', true);
+  }
+
+  function loseSheet() {
+    G_.sheets--; G_.combo = 0; G_.shake = 16; G_.flash = 1;
+    Audio2.fail(); buzz([24, 40, 60]);
+    if (G_.sheets <= 0) return over(false);
+    toast('NACHDRUCK', '#FF3D9A', true);
+    // Wiedereinstieg: nächste passende Plattform
+    let best = null;
+    for (const p of G_.pink) { if (p.x > G_.dist + 40 && (!best || p.x < best.x)) best = p; }
+    if (best) {
+      G_.dist = best.x + 50;
+      G_.reg = G_.regT = -best.d;
+      G_.r.y = best.y - 34; G_.r.vy = 0; G_.r.ground = true;
+    }
+    G_.invuln = 1.5; G_.ink = Math.max(G_.ink, 40);
+  }
+
+  function over(won) {
+    G_.mode = 'over';
+    Audio2.humLevel(0);
+    if (won) { G_.score += G_.sheets * 500 + Math.round(G_.ink * 4); Audio2.win(); buzz([12, 40, 12, 40, 90]); }
+    else { Audio2.fail(); buzz(220); }
+    const sc = Math.round(G_.score);
+    const isBest = sc > S.best;
+    if (isBest) S.best = sc;
+    S.runs++; S.sheets += G_.marks; S.marks += G_.marks;
+
+    let unlocked = null;
+    PALETTES.forEach((p, i) => { if (S.best >= p.need && !G_.hadPal.includes(i)) { G_.hadPal.push(i); unlocked = p; } });
+    save(); buildPals();
+
+    $('ovTitle').innerHTML = won ? 'AUFLAGE<br>FREIGEGEBEN' : 'BOGEN<br>VERLOREN';
+    $('ovSub').textContent = won
+      ? '90 Sekunden, zwei Platten, keine Fehlstelle. Der Bogen liegt im Trocknungsregal.'
+      : pick(['Die Farben standen nie zusammen.', 'Zu viel Versatz. Der Bogen wandert in den Makulaturstapel.',
+              'Die Maschine hat gewonnen. Sie tut das öfter.', 'Pink lief davon. Blau hat es nicht gemerkt.']);
+    $('ovNew').classList.toggle('hidden', !isBest);
+    $('stScore').textContent = sc;
+    $('stMarks').textContent = G_.marks;
+    $('stCombo').textContent = '×' + G_.comboMax;
+    $('stTime').textContent = Math.min(90, G_.t | 0) + ' s';
+    const u = $('ovUnlock');
+    if (unlocked) { u.classList.remove('hidden'); u.innerHTML = '<b>Neue Spot-Farbe freigeschaltet:</b> ' + unlocked.name; }
+    else u.classList.add('hidden');
+    $('ovOver').classList.remove('hidden');
+    $('menuBest').textContent = S.best;
+    $('stRuns').textContent = S.runs + ' Bögen gefahren';
+    $('logline').textContent = won
+      ? 'Bogen ' + S.runs + ' freigegeben. Walze läuft weiter.'
+      : 'Makulatur. Farbe nachgefüllt. Weitermachen.';
+  }
+  G_.hadPal = PALETTES.map((p, i) => i).filter(i => S.best >= PALETTES[i].need);
+
+  /* ── Eingabe ────────────────────────────────────────────────── */
+  let ptrId = null, lastPX = 0;
+  cv.addEventListener('pointerdown', e => {
+    if (G_.mode !== 'play') return;
+    cv.setPointerCapture(e.pointerId);
+    ptrId = e.pointerId; lastPX = e.clientX;
+    G_.r.buf = 0.13;
+    e.preventDefault();
+  });
+  cv.addEventListener('pointermove', e => {
+    if (ptrId !== e.pointerId || G_.mode !== 'play') return;
+    const rect = cv.getBoundingClientRect();
+    const dx = (e.clientX - lastPX) * (VW / rect.width);
+    lastPX = e.clientX;
+    if (G_.fail > 0) return;
+    const dir = G_.smear > 0 ? -1 : 1;
+    G_.regT = clamp(G_.regT + dx * 1.25 * dir, -REG_MAX, REG_MAX);
+  });
+  const endPtr = e => { if (e.pointerId === ptrId) ptrId = null; };
+  cv.addEventListener('pointerup', endPtr); cv.addEventListener('pointercancel', endPtr);
+
+  addEventListener('keydown', e => {
+    if (e.code === 'Space' || e.code === 'ArrowUp' || e.code === 'KeyW') {
+      if (G_.mode === 'play') G_.r.buf = 0.13;
+      else if (G_.mode !== 'play') start();
+      e.preventDefault();
+    }
+    if (G_.mode !== 'play' || G_.fail > 0) return;
+    const k = (G_.smear > 0 ? -1 : 1) * 7;
+    if (e.code === 'ArrowLeft' || e.code === 'KeyA') G_.regT = clamp(G_.regT - k, -REG_MAX, REG_MAX);
+    if (e.code === 'ArrowRight' || e.code === 'KeyD') G_.regT = clamp(G_.regT + k, -REG_MAX, REG_MAX);
+  });
+
+  /* ── Update ─────────────────────────────────────────────────── */
+  function update(dt) {
+    if (G_.mode !== 'play') return;
+    G_.t += dt;
+
+    /* Vorschub: 4 Gänge über 90 s */
+    const prog = G_.t / RUNTIME;
+    const newGear = 1 + Math.min(3, Math.floor(prog * 4));
+    if (newGear !== G_.gear) { G_.gear = newGear; Audio2.gear(); G_.shake = 7; toast('GANG ' + newGear, '#1B3FD6'); }
+    G_.speed = 205 + 175 * (prog * prog * 0.45 + prog * 0.55);
+    Audio2.humPitch(G_.speed);
+    G_.dist += G_.speed * dt;
+    G_.score += G_.speed * dt * 0.07;
+
+    /* Farbe */
+    G_.ink = Math.max(0, G_.ink - dt * (3.1 + prog * 1.5));
+    if (G_.fail > 0) {
+      G_.fail -= dt;
+      G_.failW = clamp(G_.failW + rnd(-1, 1) * 46 * dt * 10, -REG_MAX, REG_MAX);
+      G_.regT = G_.failW;
+      if (G_.fail <= 0) { G_.ink = 50; toast('FARBE NACHGEFÜLLT', '#FFC93C'); }
+    } else if (G_.ink <= 0) {
+      G_.fail = 3.5; G_.failW = G_.reg; G_.combo = 0;
+      Audio2.fail(); buzz([30, 30, 30, 30, 120]);
+      toast('FARBAUSFALL', '#FF3D9A', true);
+      G_.shake = 14;
+    }
+
+    /* Platten-Feder */
+    G_.reg += (G_.regT - G_.reg) * (1 - Math.exp(-dt * 13));
+
+    generate(); computeGrounds();
+
+    /* Physik */
+    const r = G_.r;
+    if (G_.invuln > 0) G_.invuln -= dt;
+    if (r.buf > 0) r.buf -= dt;
+    if (r.coyote > 0) r.coyote -= dt;
+
+    if (r.buf > 0 && (r.ground || r.coyote > 0)) {
+      r.vy = JUMPV; r.ground = false; r.coyote = 0; r.buf = 0;
+      Audio2.jump(); buzz(8);
+      burst(RUN_X, r.y + 30, 5, pal().blue, 90);
+    }
+    r.vy += G * dt;                                   /* variable Sprunghöhe: Release kappt vy */
+    const py = r.y, ny = r.y + r.vy * dt;
+
+    const fl = G_.dist - 9, fr = G_.dist + 9;
+    let landed = null;
+    for (const g of G_.grounds) {
+      if (g.x + g.w < fl || g.x > fr) continue;
+      if (r.vy >= 0 && py + 30 <= g.y + 3 && ny + 30 >= g.y) { landed = g; break; }
+    }
+    if (landed) {
+      if (!r.ground) {
+        Audio2.land(); buzz(6);
+        burst(RUN_X, landed.y, 4, PLUM, 70);
+        r.y = Math.round(landed.y - 30);            /* Pressen-Quantisierung: 2-px-Raster */
+        if (r.y % 2) r.y -= 1;
+      } else r.y = landed.y - 30;
+      r.vy = 0; r.ground = true; r.coyote = 0.1;
+    } else {
+      r.y = ny;
+      if (r.ground) { r.ground = false; r.coyote = 0.1; }
+    }
+    /* Kopfstoß */
+    if (r.vy < 0) {
+      for (const g of G_.grounds) {
+        if (g.x + g.w < fl || g.x > fr) continue;
+        if (py >= g.y + g.h - 2 && ny < g.y + g.h) { r.y = g.y + g.h; r.vy = 40; break; }
+      }
+    }
+    r.phase += dt * G_.speed * 0.055;
+
+    if (r.y > PH + 40 && G_.invuln <= 0) return loseSheet();
+
+    /* Passermarken */
+    for (const m of G_.marks_) {
+      if (m.got) continue;
+      const sx = m.x - G_.dist + RUN_X;
+      if (Math.abs(m.x - G_.dist) < 24 && Math.abs(m.y - (r.y + 15)) < 40) {
+        m.got = true; G_.marks++; G_.combo++; G_.comboMax = Math.max(G_.comboMax, G_.combo);
+        const mult = Math.min(8, G_.combo);
+        G_.score += 100 * mult;
+        G_.ink = Math.min(100, G_.ink + 16);
+        Audio2.mark(G_.combo); buzz(10);
+        burst(sx, m.y, 12, pal().accent, 170);
+        if (G_.combo > 1) toast('×' + mult + '  +' + 100 * mult, pal().accent);
+      }
+    }
+    /* Spritzer */
+    if (G_.smear > 0) G_.smear -= dt;
+    for (const b of G_.blobs) {
+      if (b.hit) continue;
+      if (Math.abs(b.x - G_.dist) < b.r + 11 && Math.abs(b.y - (r.y + 15)) < b.r + 17) {
+        b.hit = true; G_.smear = 2.6; G_.combo = 0; G_.shake = 12;
+        Audio2.fail(); buzz([18, 22, 40]);
+        burst(b.x - G_.dist + RUN_X, b.y, 16, pal().pink, 190);
+        toast('VERSCHMIERT', pal().pink, true);
+      }
+    }
+
+    /* Effekte */
+    G_.shake *= Math.exp(-dt * 7);
+    G_.flash *= Math.exp(-dt * 6);
+    for (let i = G_.parts.length - 1; i >= 0; i--) {
+      const p = G_.parts[i];
+      p.vy += 900 * dt; p.x += p.vx * dt; p.y += p.vy * dt; p.l -= dt * 1.5;
+      if (p.l <= 0) G_.parts.splice(i, 1);
+    }
+    for (let i = G_.toasts.length - 1; i >= 0; i--) {
+      const t = G_.toasts[i]; t.l -= dt * 0.75; t.y -= dt * 26;
+      if (t.l <= 0) G_.toasts.splice(i, 1);
+    }
+
+    if (G_.t >= RUNTIME) over(true);
+  }
+  /* Sprung abkürzen, wenn die Taste/der Finger früh loslässt */
+  addEventListener('keyup', e => { if (e.code === 'Space' && G_.r.vy < -180) G_.r.vy *= 0.5; });
+  cv.addEventListener('pointerup', () => { if (G_.r.vy < -180) G_.r.vy *= 0.52; });
+
+  /* ── Zeichnen ───────────────────────────────────────────────── */
+  function render(time) {
+    const P = pal();
+    const jit = Math.sin(time * 0.03) * 0.6;
+    ctx.setTransform(scale, 0, 0, scale, 0, 0);
+    ctx.globalCompositeOperation = 'source-over';
+    ctx.fillStyle = '#0B0A09'; ctx.fillRect(0, 0, VW, VH);
+
+    drawHud(P);
+
+    ctx.save();
+    ctx.translate(G_.shake ? rnd(-G_.shake, G_.shake) : 0, HUD + (G_.shake ? rnd(-G_.shake, G_.shake) * 0.5 : 0));
+    ctx.beginPath(); ctx.rect(0, 0, VW, PH); ctx.clip();
+
+    /* Papier */
+    ctx.fillStyle = PAPER; ctx.fillRect(0, 0, VW, PH);
+    ctx.globalAlpha = 0.055;
+    ctx.save(); ctx.translate(-(G_.dist * 0.5) % 110, -(G_.dist * 0.5) % 110);
+    ctx.fillStyle = grainPat; ctx.fillRect(0, 0, VW + 110, PH + 110); ctx.restore();
+    ctx.globalAlpha = 0.07;
+    ctx.fillStyle = halfPat; ctx.fillRect(0, 0, VW, PH);
+    ctx.globalAlpha = 1;
+
+    /* Transportlochkante */
+    ctx.fillStyle = 'rgba(70,55,40,0.16)';
+    const off = -(G_.dist % 46);
+    for (let y = off - 46; y < PH + 46; y += 46) {
+      ctx.beginPath(); ctx.arc(13, y, 5, 0, 7); ctx.fill();
+    }
+    ctx.fillStyle = 'rgba(70,55,40,0.14)'; ctx.fillRect(26, 0, 1, PH);
+
+    /* Platten (multiply = echter Overprint) */
+    ctx.globalCompositeOperation = 'multiply';
+
+    ctx.fillStyle = P.blue;
+    for (const c of G_.blue) {
+      const x = c.x - G_.dist + RUN_X;
+      if (x + c.w < -20 || x > VW + 20) continue;
+      ctx.fillRect(x, c.y, c.w, c.h);
+      ctx.fillRect(x + 4, c.y + c.h, 5, 4);
+      ctx.fillRect(x + c.w - 9, c.y + c.h, 5, 4);
+    }
+    ctx.fillStyle = P.pink;
+    for (const c of G_.pink) {
+      const x = c.x + G_.reg + jit - G_.dist + RUN_X;
+      if (x + c.w < -20 || x > VW + 20) continue;
+      ctx.fillRect(x, c.y, c.w, c.h);
+      ctx.fillRect(x + 4, c.y - 4, 5, 4);
+      ctx.fillRect(x + c.w - 9, c.y - 4, 5, 4);
+    }
+    /* Boden = Schnittmenge */
+    ctx.fillStyle = 'rgba(42,16,48,0.34)';
+    for (const g of G_.grounds) {
+      const x = g.x - G_.dist + RUN_X;
+      if (x + g.w < -20 || x > VW + 20) continue;
+      ctx.fillRect(x, g.y, g.w, g.h);
+    }
+    ctx.fillStyle = 'rgba(28,8,32,0.6)';
+    for (const g of G_.grounds) {
+      const x = g.x - G_.dist + RUN_X;
+      if (x + g.w < -20 || x > VW + 20) continue;
+      ctx.fillRect(x, g.y, g.w, 2.5);
+    }
+    ctx.globalCompositeOperation = 'source-over';
+
+    /* Spritzer */
+    for (const b of G_.blobs) {
+      if (b.hit) continue;
+      const x = b.x - G_.dist + RUN_X;
+      if (x < -40 || x > VW + 40) continue;
+      ctx.fillStyle = P.pink;
+      ctx.beginPath();
+      for (let i = 0; i < 9; i++) {
+        const a = i / 9 * 6.283, rr = b.r * (0.62 + 0.5 * Math.abs(Math.sin(b.seed + i * 2.1)));
+        const px = x + Math.cos(a) * rr, py2 = b.y + Math.sin(a) * rr;
+        i ? ctx.lineTo(px, py2) : ctx.moveTo(px, py2);
+      }
+      ctx.closePath(); ctx.fill();
+      ctx.fillStyle = PAPER; ctx.beginPath(); ctx.arc(x - b.r * 0.25, b.y - b.r * 0.3, b.r * 0.2, 0, 7); ctx.fill();
+    }
+
+    /* Passermarken */
+    for (const m of G_.marks_) {
+      if (m.got) continue;
+      const x = m.x - G_.dist + RUN_X;
+      if (x < -30 || x > VW + 30) continue;
+      const pu = 1 + Math.sin(time * 0.006 + m.x) * 0.09;
+      ctx.save(); ctx.translate(x, m.y); ctx.rotate(time * 0.0009 + m.x * 0.01); ctx.scale(pu, pu);
+      ctx.strokeStyle = P.accent; ctx.lineWidth = 2.2;
+      ctx.beginPath(); ctx.arc(0, 0, 9, 0, 7); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(-13, 0); ctx.lineTo(13, 0); ctx.moveTo(0, -13); ctx.lineTo(0, 13); ctx.stroke();
+      ctx.fillStyle = P.accent; ctx.beginPath(); ctx.arc(0, 0, 2.4, 0, 7); ctx.fill();
+      ctx.restore();
+    }
+
+    /* Läufer: dreifach gedruckt, Offset = Passungsfehler */
+    drawRunner(P, time);
+
+    /* Partikel */
+    for (const p of G_.parts) {
+      ctx.globalAlpha = Math.max(0, p.l);
+      ctx.fillStyle = p.col;
+      ctx.fillRect(p.x - p.s / 2, p.y - p.s / 2, p.s, p.s);
+    }
+    ctx.globalAlpha = 1;
+
+    /* Greiferrand oben / Auswurf unten */
+    ctx.fillStyle = 'rgba(20,17,15,0.5)'; ctx.fillRect(0, 0, VW, 9);
+    ctx.fillStyle = PAPER;
+    for (let x = 14; x < VW; x += 30) ctx.fillRect(x, 3, 12, 3);
+    const grd = ctx.createLinearGradient(0, PH - 52, 0, PH);
+    grd.addColorStop(0, 'rgba(20,17,15,0)'); grd.addColorStop(1, 'rgba(20,17,15,0.42)');
+    ctx.fillStyle = grd; ctx.fillRect(0, PH - 52, VW, 52);
+
+    /* Ecken-Passermarken */
+    ctx.strokeStyle = 'rgba(42,16,48,0.35)'; ctx.lineWidth = 1;
+    [[38, 26], [VW - 38, 26], [38, PH - 26], [VW - 38, PH - 26]].forEach(p => {
+      ctx.beginPath(); ctx.arc(p[0], p[1], 7, 0, 7); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(p[0] - 11, p[1]); ctx.lineTo(p[0] + 11, p[1]);
+      ctx.moveTo(p[0], p[1] - 11); ctx.lineTo(p[0], p[1] + 11); ctx.stroke();
+    });
+
+    /* Toasts */
+    ctx.textAlign = 'center';
+    for (const t of G_.toasts) {
+      ctx.globalAlpha = Math.max(0, Math.min(1, t.l * 1.6));
+      ctx.fillStyle = t.col;
+      ctx.font = (t.big ? '30px ' : '16px ') + "'Archivo Black',sans-serif";
+      const tx = VW / 2 + (1 - t.l) * 12;
+      ctx.save(); ctx.translate(tx, 300 + t.y); ctx.rotate(-0.035);
+      ctx.fillText(t.txt, 0, 0); ctx.restore();
+    }
+    ctx.globalAlpha = 1;
+    ctx.textAlign = 'left';
+
+    if (G_.flash > 0.02) {
+      ctx.fillStyle = 'rgba(233,226,208,' + (G_.flash * 0.5) + ')'; ctx.fillRect(0, 0, VW, PH);
+    }
+    if (G_.smear > 0) {
+      ctx.strokeStyle = P.pink; ctx.lineWidth = 3;
+      ctx.strokeRect(2, 2, VW - 4, PH - 4);
+    }
+    ctx.restore();
+  }
+
+  function drawRunner(P, time) {
+    const r = G_.r;
+    const err = Math.abs(G_.reg + G_.pink0d());
+    const e = clamp(err * 0.045, 0, 6);
+    const leg = Math.sin(r.phase) * (r.ground ? 6 : 2);
+    const body = (ox, col) => {
+      ctx.fillStyle = col;
+      const x = RUN_X + ox, y = r.y;
+      ctx.fillRect(x - 6, y + 8, 12, 14);                     /* Rumpf */
+      ctx.beginPath(); ctx.arc(x, y + 3, 6.2, 0, 7); ctx.fill(); /* Kopf */
+      ctx.save(); ctx.lineWidth = 3; ctx.strokeStyle = col; ctx.lineCap = 'round';
+      ctx.beginPath(); ctx.moveTo(x - 1, y + 21); ctx.lineTo(x - 1 - leg, y + 31); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(x + 1, y + 21); ctx.lineTo(x + 1 + leg, y + 31); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(x - 5, y + 12); ctx.lineTo(x - 5 + leg * 0.8, y + 19); ctx.stroke();
+      ctx.restore();
+    };
+    ctx.globalCompositeOperation = 'multiply';
+    ctx.globalAlpha = G_.invuln > 0 && (time | 0) % 120 < 60 ? 0.35 : 0.8;
+    body(-e, P.blue); body(e, P.pink);
+    ctx.globalCompositeOperation = 'source-over';
+    ctx.globalAlpha = G_.invuln > 0 && (time | 0) % 120 < 60 ? 0.4 : 1;
+    body(0, PLUM);
+    ctx.globalAlpha = 1;
+    /* Auge */
+    ctx.fillStyle = PAPER; ctx.fillRect(RUN_X + 1.5, r.y + 1, 2.4, 2.4);
+  }
+  /* Referenz-Drift der Platte unter den Füßen, für den sichtbaren Fehler */
+  let pink0dCache = 0;
+  const _pink0d = () => pink0dCache;
+  G_.pink0d = function () {
+    let best = null;
+    for (const p of G_.pink) {
+      const x = p.x + G_.reg;
+      if (x <= G_.dist + 12 && x + p.w >= G_.dist - 12 && (!best || p.y > best.y)) best = p;
+    }
+    pink0dCache = best ? best.d : G_.drift;
+    return pink0dCache;
+  };
+
+  function drawHud(P) {
+    ctx.fillStyle = '#171412'; ctx.fillRect(0, 0, VW, HUD);
+    ctx.fillStyle = 'rgba(233,226,208,0.05)';
+    for (let x = 0; x < VW; x += 4) ctx.fillRect(x, 0, 1, HUD);
+
+    /* Bögen */
+    ctx.font = "9px 'IBM Plex Mono',monospace";
+    ctx.fillStyle = 'rgba(233,226,208,0.5)';
+    ctx.fillText('BOGEN', 14, 20);
+    for (let i = 0; i < 3; i++) {
+      ctx.fillStyle = i < G_.sheets ? PAPER : 'rgba(233,226,208,0.16)';
+      ctx.fillRect(14 + i * 15, 26, 11, 15);
+      if (i >= G_.sheets) { ctx.strokeStyle = 'rgba(233,226,208,0.3)'; ctx.lineWidth = 1; ctx.strokeRect(14 + i * 15, 26, 11, 15); }
+    }
+
+    /* Vorschub-Balken */
+    const bx = 78, bw = VW - 78 - 96;
+    ctx.fillStyle = 'rgba(233,226,208,0.14)'; ctx.fillRect(bx, 30, bw, 8);
+    const p = clamp(G_.t / RUNTIME, 0, 1);
+    ctx.fillStyle = P.pink; ctx.fillRect(bx, 30, bw * p, 8);
+    ctx.fillStyle = P.blue; ctx.fillRect(bx + bw * p - 2, 27, 4, 14);
+    ctx.fillStyle = 'rgba(233,226,208,0.35)';
+    for (let i = 1; i < 4; i++) ctx.fillRect(bx + bw * i / 4, 30, 1, 8);
+    ctx.font = "9px 'IBM Plex Mono',monospace";
+    ctx.fillStyle = 'rgba(233,226,208,0.5)';
+    ctx.fillText('VORSCHUB  ' + Math.max(0, RUNTIME - G_.t | 0) + 's', bx, 20);
+    ctx.fillStyle = P.accent;
+    ctx.fillText('GANG ' + G_.gear, bx + bw - 34, 20);
+
+    /* Auflage */
+    ctx.textAlign = 'right';
+    ctx.font = "22px 'Archivo Black',sans-serif";
+    ctx.fillStyle = PAPER;
+    ctx.fillText(String(Math.round(G_.score)), VW - 14, 42);
+    ctx.font = "9px 'IBM Plex Mono',monospace";
+    ctx.fillStyle = 'rgba(233,226,208,0.5)';
+    ctx.fillText('AUFLAGE', VW - 14, 20);
+    ctx.textAlign = 'left';
+
+    /* Farbe */
+    const iw = VW - 28, low = G_.ink < 25;
+    ctx.fillStyle = 'rgba(233,226,208,0.13)'; ctx.fillRect(14, 52, iw, 5);
+    ctx.fillStyle = G_.fail > 0 ? P.pink : (low ? '#FF5A2B' : P.accent);
+    if (low && (Date.now() % 500) < 250) ctx.globalAlpha = 0.45;
+    ctx.fillRect(14, 52, iw * clamp(G_.ink / 100, 0, 1), 5);
+    ctx.globalAlpha = 1;
+    ctx.font = "8.5px 'IBM Plex Mono',monospace";
+    ctx.fillStyle = 'rgba(233,226,208,0.45)';
+    ctx.fillText(G_.fail > 0 ? 'FARBAUSFALL' : 'FARBSTAND', 14, 63);
+    if (G_.combo > 1) {
+      ctx.textAlign = 'right'; ctx.fillStyle = P.accent;
+      ctx.font = "10px 'IBM Plex Mono',monospace";
+      ctx.fillText('SERIE ×' + Math.min(8, G_.combo), VW - 14, 63);
+      ctx.textAlign = 'left';
+    }
+    ctx.fillStyle = '#0B0A09'; ctx.fillRect(0, HUD - 1, VW, 2);
+  }
+
+  /* ── Loop ───────────────────────────────────────────────────── */
+  let last = performance.now(), acc = 0, frames = 0, fpsT = 0;
+  function loop(now) {
+    const dt = Math.min(0.034, (now - last) / 1000); last = now;
+    update(dt); render(now);
+    frames++; fpsT += dt;
+    if (fpsT > 0.5) { $('fps').textContent = Math.round(frames / fpsT) + ' fps'; frames = 0; fpsT = 0; }
+    requestAnimationFrame(loop);
+  }
+
+  /* ── UI: Paletten ───────────────────────────────────────────── */
+  function buildPals() {
+    const row = $('palRow'); if (!row) return;
+    row.innerHTML = '';
+    PALETTES.forEach((p, i) => {
+      const open = S.best >= p.need;
+      const b = document.createElement('button');
+      b.className = 'chip flex-1 p-1.5 text-left';
+      b.disabled = !open;
+      b.setAttribute('aria-pressed', String(S.pal === i));
+      b.innerHTML =
+        '<span class="block h-6 mb-1" style="background:linear-gradient(90deg,' + p.blue + ' 0 50%,' + p.pink + ' 50% 100%)"></span>' +
+        '<span class="block text-[9px] leading-tight" style="color:#14110F">' +
+        (open ? p.name.split(' / ')[0] : 'ab ' + p.need) + '</span>';
+      b.onclick = () => { S.pal = i; save(); buildPals(); Audio2.klack(); };
+      row.appendChild(b);
+    });
+  }
+
+  $('btnStart').onclick = start;
+  $('btnAgain').onclick = start;
+  $('btnMenu').onclick = () => {
+    G_.mode = 'menu'; $('ovOver').classList.add('hidden'); $('ovMenu').classList.remove('hidden');
+    $('menuBest').textContent = S.best; $('stRuns').textContent = S.runs + ' Bögen gefahren';
+  };
+  const syncToggles = () => {
+    $('btnSound').textContent = 'Ton: ' + (S.sound ? 'an' : 'aus');
+    $('btnHap').textContent = 'Haptik: ' + (S.hap ? 'an' : 'aus');
+  };
+  $('btnSound').onclick = () => { Audio2.toggle(!S.sound); syncToggles(); };
+  $('btnHap').onclick = () => { S.hap = !S.hap; save(); syncToggles(); buzz(14); };
+
+  buildPals(); syncToggles();
+  $('menuBest').textContent = S.best;
+  $('stRuns').textContent = S.runs + ' Bögen gefahren';
+  reset(); fit(); requestAnimationFrame(loop);
+
+  /* ══ Seite ══════════════════════════════════════════════════ */
+
+  /* Passungs-Prüfstand */
+  const dm = $('demo'), dc = dm.getContext('2d');
+  let demoBase = 30, demoDrag = null;
+  function demoFit() {
+    const r = dm.getBoundingClientRect();
+    const dpr = Math.min(devicePixelRatio || 1, 2);
+    dm.width = r.width * dpr; dm.height = 230 * dpr;
+    dc.setTransform(dpr, 0, 0, dpr, 0, 0);
+    dm._w = r.width;
+  }
+  function demoDraw(t) {
+    const W = dm._w || 300, H = 230;
+    const demoOff = clamp(demoBase + Math.sin(t * 0.0007) * 34, -90, 90);
+    dc.clearRect(0, 0, W, H);
+    dc.fillStyle = PAPER; dc.fillRect(0, 0, W, H);
+    dc.globalAlpha = 0.06; dc.fillStyle = halfPat; dc.fillRect(0, 0, W, H); dc.globalAlpha = 1;
+
+    const A = { x: 30, y: 60, w: W - 120, h: 34 };
+    const B = { x: 90 + demoOff, y: 128, w: W - 120, h: 34 };
+    dc.globalCompositeOperation = 'multiply';
+    dc.fillStyle = pal().blue; dc.fillRect(A.x, A.y, A.w, A.h);
+    dc.fillStyle = pal().pink; dc.fillRect(B.x, B.y, B.w, B.h);
+    const x1 = Math.max(A.x, B.x), x2 = Math.min(A.x + A.w, B.x + B.w);
+    const ov = Math.max(0, x2 - x1);
+    if (ov > 2) {
+      dc.fillStyle = 'rgba(42,16,48,0.4)';
+      dc.fillRect(x1, H / 2 - 14, ov, 28);
+      dc.fillStyle = 'rgba(28,8,32,0.7)'; dc.fillRect(x1, H / 2 - 14, ov, 2);
+    }
+    dc.globalCompositeOperation = 'source-over';
+    dc.strokeStyle = 'rgba(42,16,48,0.4)'; dc.setLineDash([3, 4]); dc.lineWidth = 1;
+    dc.beginPath(); dc.moveTo(x1, 40); dc.lineTo(x1, H - 34);
+    dc.moveTo(x2, 40); dc.lineTo(x2, H - 34); dc.stroke(); dc.setLineDash([]);
+
+    dc.font = "9px 'IBM Plex Mono',monospace";
+    dc.fillStyle = pal().blue; dc.fillText('PLATTE A · FEST', A.x, A.y - 8);
+    dc.fillStyle = pal().pink; dc.fillText('PLATTE B · VERSATZ ' + Math.round(demoOff) + ' PX', B.x, B.y + B.h + 16);
+    dc.fillStyle = '#2A1030'; dc.font = "10px 'IBM Plex Mono',monospace";
+    dc.fillText(ov > 2 ? 'TRAGFÄHIG · ' + Math.round(ov) + ' PX' : 'KEIN BODEN', Math.max(6, x1), H / 2 - 22);
+    $('demoPct').textContent = Math.round(clamp(ov / (W - 120), 0, 1) * 100) + ' %';
+  }
+  let demoVisible = false;
+  new IntersectionObserver(es => es.forEach(e => { demoVisible = e.isIntersecting; if (e.isIntersecting) demoFit(); }),
+    { threshold: 0.15 }).observe(dm);
+  function demoLoop(t) { if (demoVisible) demoDraw(t); requestAnimationFrame(demoLoop); }
+  addEventListener('resize', demoFit);
+  const dPtr = e => {
+    const r = dm.getBoundingClientRect();
+    demoBase = clamp(((e.clientX - r.left) / r.width - 0.5) * 200, -90, 90);
+  };
+  dm.addEventListener('pointerdown', e => { demoDrag = e.pointerId; dm.setPointerCapture(e.pointerId); dPtr(e); });
+  dm.addEventListener('pointermove', e => { if (demoDrag === e.pointerId) dPtr(e); });
+  dm.addEventListener('pointerup', () => demoDrag = null);
+  demoFit(); requestAnimationFrame(demoLoop);
+
+  /* Scroll-Reveals */
+  const io = new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); } }),
+    { threshold: 0.18 });
+  document.querySelectorAll('.reveal').forEach(el => io.observe(el));
+
+  /* Intro-Jagd beenden, damit Inline-Werte wieder greifen (Animation > Inline) */
+  setTimeout(() => document.querySelectorAll('.reg.hunting').forEach(el => el.classList.remove('hunting')), 1700);
+
+  /* Titel sucht die Passung — bei jedem Sektionswechsel erneut */
+  const kick = () => document.querySelectorAll('.reg').forEach((el, i) => {
+    el.style.setProperty('--gx', (-8 - i * 2) + 'px');
+    el.style.setProperty('--gx2', (8 + i * 2) + 'px');
+    setTimeout(() => { el.style.setProperty('--gx', '0px'); el.style.setProperty('--gx2', '0px'); }, 60);
+  });
+  const sio = new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting) kick(); }), { threshold: 0.5 });
+  document.querySelectorAll('section').forEach(s => sio.observe(s));
+
+  /* Uhr */
+  const tick = () => {
+    const d = new Date();
+    $('clock').textContent = String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
+  };
+  tick(); setInterval(tick, 20000);
+
+  /* ── PWA ────────────────────────────────────────────────────── */
+  if ('serviceWorker' in navigator && location.protocol !== 'file:') {
+    addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
+  }
+})();
+/* @@BUILD:END */
+</script>
+</body>
+</html>
